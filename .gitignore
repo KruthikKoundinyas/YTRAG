@@ -26,3 +26,30 @@ Thumbs.db
 
 # Logs
 *.log
+
+# FAISS index files
+*.faiss
+*.index
+
+# Model files (large)
+*.bin
+*.pt
+*.pth
+
+# Temporary files
+temp_transcripts/
+*.tmp
+
+# Flask instance
+instance/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/

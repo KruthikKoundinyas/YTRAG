@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YTRAG v2 - YouTube Transcript RAG</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        background: #343541;
+        color: #ececf1;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #4e4f60;
+        background: #343541;
+        text-align: center;
+      }
+
+      .header h1 {
+        color: #10a37f;
+        font-size: 24px;
+        margin-bottom: 4px;
+      }
+
+      .header p {
+        color: #8e8ea0;
+        font-size: 14px;
+      }
+
+      .chat-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .message {
+        max-width: 900px;
+        margin: 0 auto;
+        width: 100%;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.user {
+        background: #343541;
+        padding: 16px 20px;
+        border-radius: 8px;
+      }
+
+      .message.assistant {
+        background: #444654;
+        padding: 16px 20px;
+        border-radius: 8px;
+      }
+
+      .message-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .message.user .message-label {
+        color: #ececf1;
+      }
+
+      .message.assistant .message-label {
+        color: #10a37f;
+      }
+
+      .message-content {
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+
+      .metadata {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+        font-size: 13px;
+      }
+
+      .metadata-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .metadata-label {
+        color: #8e8ea0;
+      }
+
+      .confidence-high {
+        color: #10a37f;
+        font-weight: 600;
+      }
+
+      .confidence-medium {
+        color: #f5a623;
+        font-weight: 600;
+      }
+
+      .confidence-low {
+        color: #ef4444;
+        font-weight: 600;
+      }
+
+      .status-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .status-answered {
+        background: rgba(16, 163, 127, 0.2);
+        color: #10a37f;
+      }
+
+      .status-refused {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
+
+      .sources-section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #4e4f60;
+      }
+
+      .sources-title {
+        font-weight: 600;
+        color: #8e8ea0;
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .source-item {
+        background: #2a2b32;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+
+      .source-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .source-link {
+        color: #10a37f;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+      }
+
+      .source-link:hover {
+        text-decoration: underline;
+      }
+
+      .source-score {
+        color: #8e8ea0;
+        font-size: 12px;
+      }
+
+      .source-chunk {
+        color: #c5c5d2;
+        font-size: 13px;
+        line-height: 1.5;
+        max-height: 100px;
+        overflow-y: auto;
+      }
+
+      .chunks-section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #4e4f60;
+      }
+
+      .chunks-title {
+        font-weight: 600;
+        color: #8e8ea0;
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .chunk-item {
+        background: #2a2b32;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        border-left: 3px solid #10a37f;
+      }
+
+      .chunk-text {
+        color: #c5c5d2;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .chunk-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #8e8ea0;
+      }
+
+      .input-container {
+        padding: 20px;
+        border-top: 1px solid #4e4f60;
+        background: #343541;
+      }
+
+      .input-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        gap: 12px;
+      }
+
+      .question-input {
+        flex: 1;
+        padding: 14px 16px;
+        border: 1px solid #565869;
+        border-radius: 8px;
+        background: #40414f;
+        color: #ececf1;
+        font-size: 16px;
+        resize: none;
+        font-family: inherit;
+        min-height: 50px;
+        max-height: 150px;
+      }
+
+      .question-input:focus {
+        outline: none;
+        border-color: #10a37f;
+      }
+
+      .question-input::placeholder {
+        color: #8e8ea0;
+      }
+
+      .submit-btn {
+        background: #10a37f;
+        color: white;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        align-self: flex-end;
+      }
+
+      .submit-btn:hover {
+        background: #0d8a6a;
+      }
+
+      .submit-btn:disabled {
+        background: #565869;
+        cursor: not-allowed;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #8e8ea0;
+      }
+
+      .loading-dots {
+        display: flex;
+        gap: 4px;
+      }
+
+      .loading-dots span {
+        width: 8px;
+        height: 8px;
+        background: #10a37f;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out;
+      }
+
+      .loading-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .loading-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #8e8ea0;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .empty-state h2 {
+        color: #ececf1;
+        margin-bottom: 8px;
+        font-size: 24px;
+      }
+
+      .empty-state p {
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      .example-questions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .example-btn {
+        background: #40414f;
+        border: 1px solid #565869;
+        color: #ececf1;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .example-btn:hover {
+        background: #565869;
+      }
+
+      .refusal-notice {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 6px;
+        padding: 12px;
+        margin-top: 12px;
+        font-size: 13px;
+        color: #ef4444;
+      }
+
+      .retrieval-info {
+        margin-top: 12px;
+        padding: 10px;
+        background: rgba(16, 163, 127, 0.1);
+        border-radius: 6px;
+        font-size: 12px;
+        color: #8e8ea0;
+      }
+
+      .retrieval-info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .retrieval-info-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .retrieval-info-label {
+        color: #8e8ea0;
+      }
+
+      .retrieval-info-value {
+        color: #10a37f;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>YTRAG v2</h1>
+      <p>
+        YouTube Transcript RAG - Ask questions about video content with visible
+        retrieval & reasoning
+      </p>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+      <div class="empty-state" id="emptyState">
+        <h2>Welcome to YTRAG v2</h2>
+        <p>
+          Ask questions about YouTube video transcripts and get AI-powered
+          answers with visible sources, supporting chunks, and confidence
+          scores.
+        </p>
+        <div class="example-questions">
+          <button
+            class="example-btn"
+            onclick="askExample('What is a neural network?')"
+          >
+            What is a neural network?
+          </button>
+          <button
+            class="example-btn"
+            onclick="askExample('How do transformers work?')"
+          >
+            How do transformers work?
+          </button>
+          <button
+            class="example-btn"
+            onclick="askExample('Explain backpropagation')"
+          >
+            Explain backpropagation
+          </button>
+          <button
+            class="example-btn"
+            onclick="askExample('What is gradient descent?')"
+          >
+            What is gradient descent?
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-container">
+      <div class="input-wrapper">
+        <textarea
+          class="question-input"
+          id="questionInput"
+          placeholder="Ask a question about the video transcripts..."
+          rows="1"
+          onkeydown="handleKeyDown(event)"
+        ></textarea>
+        <button class="submit-btn" id="submitBtn" onclick="sendMessage()">
+          Send
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const chatContainer = document.getElementById("chatContainer");
+      const emptyState = document.getElementById("emptyState");
+      const submitBtn = document.getElementById("submitBtn");
+      const questionInput = document.getElementById("questionInput");
+
+      // Auto-resize textarea
+      questionInput.addEventListener("input", function () {
+        this.style.height = "auto";
+        this.style.height = Math.min(this.scrollHeight, 150) + "px";
+      });
+
+      function handleKeyDown(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+
+      function askExample(question) {
+        questionInput.value = question;
+        sendMessage();
+      }
+
+      function addMessage(content, isUser = false, metadata = null) {
+        if (emptyState) {
+          emptyState.remove();
+        }
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isUser ? "user" : "assistant"}`;
+
+        let html = `<div class="message-label">${isUser ? "You" : "YTRAG v2"}</div>`;
+        html += `<div class="message-content">${escapeHtml(content)}</div>`;
+
+        if (metadata) {
+          html += `<div class="metadata">`;
+
+          if (metadata.confidence) {
+            const confidenceClass = `confidence-${metadata.confidence}`;
+            html += `<div class="metadata-item">
+                        <span class="metadata-label">Confidence:</span>
+                        <span class="${confidenceClass}">${metadata.confidence.toUpperCase()}</span>
+                    </div>`;
+          }
+
+          if (metadata.refused !== undefined) {
+            const statusClass = metadata.refused
+              ? "status-refused"
+              : "status-answered";
+            const statusText = metadata.refused ? "Refused" : "Answered";
+            html += `<div class="metadata-item">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>`;
+          }
+
+          html += `</div>`;
+
+          if (metadata.refused && metadata.reason) {
+            html += `<div class="refusal-notice">${escapeHtml(metadata.reason)}</div>`;
+          }
+        }
+
+        messageDiv.innerHTML = html;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        return messageDiv;
+      }
+
+      function addSources(sources) {
+        const lastMessage = chatContainer.lastElementChild;
+        if (!lastMessage || !sources || sources.length === 0) return;
+
+        const sourcesDiv = document.createElement("div");
+        sourcesDiv.className = "sources-section";
+
+        let html = `<div class="sources-title">Sources (${sources.length})</div>`;
+
+        sources.forEach((source, index) => {
+          html += `<div class="source-item">
+                    <div class="source-header">
+                        <a href="${source.video_url}" target="_blank" class="source-link">${escapeHtml(source.video_name)}</a>
+                    </div>
+                </div>`;
+        });
+
+        sourcesDiv.innerHTML = html;
+        lastMessage.appendChild(sourcesDiv);
+      }
+
+      function addChunks(chunks) {
+        const lastMessage = chatContainer.lastElementChild;
+        if (!lastMessage || !chunks || chunks.length === 0) return;
+
+        const chunksDiv = document.createElement("div");
+        chunksDiv.className = "chunks-section";
+
+        let html = `<div class="chunks-title">Supporting Chunks (${chunks.length})</div>`;
+
+        chunks.forEach((chunk, index) => {
+          html += `<div class="chunk-item">
+                    <div class="chunk-text">${escapeHtml(chunk.text)}</div>
+                    <div class="chunk-meta">
+                        <span>${escapeHtml(chunk.video_name)}</span>
+                        <span>Score: ${chunk.score}</span>
+                    </div>
+                </div>`;
+        });
+
+        chunksDiv.innerHTML = html;
+        lastMessage.appendChild(chunksDiv);
+      }
+
+      function addRetrievalInfo(data) {
+        const lastMessage = chatContainer.lastElementChild;
+        if (!lastMessage) return;
+
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "retrieval-info";
+
+        let html = "";
+
+        if (data.chunks_used !== undefined) {
+          html += `<div class="retrieval-info-item">
+                    <span class="retrieval-info-label">Chunks Retrieved:</span>
+                    <span class="retrieval-info-value">${data.chunks_used}</span>
+                </div>`;
+        }
+
+        if (data.retrieval_scores && data.retrieval_scores.length > 0) {
+          const topScore = Math.max(...data.retrieval_scores).toFixed(3);
+          html += `<div class="retrieval-info-item">
+                    <span class="retrieval-info-label">Top Retrieval Score:</span>
+                    <span class="retrieval-info-value">${topScore}</span>
+                </div>`;
+        }
+
+        if (data.query_language) {
+          html += `<div class="retrieval-info-item">
+                    <span class="retrieval-info-label">Query Language:</span>
+                    <span class="retrieval-info-value">${data.query_language.toUpperCase()}</span>
+                </div>`;
+        }
+
+        if (html) {
+          infoDiv.innerHTML = html;
+          lastMessage.appendChild(infoDiv);
+        }
+      }
+
+      function addLoading() {
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "message assistant";
+        loadingDiv.id = "loadingMessage";
+        loadingDiv.innerHTML = `
+                <div class="message-label">YTRAG v2</div>
+                <div class="loading">
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span>Searching transcripts and generating answer...</span>
+                </div>
+            `;
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function removeLoading() {
+        const loadingMessage = document.getElementById("loadingMessage");
+        if (loadingMessage) {
+          loadingMessage.remove();
+        }
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      async function sendMessage() {
+        const question = questionInput.value.trim();
+        if (!question) {
+          return;
+        }
+
+        // Add user message
+        addMessage(question, true);
+
+        // Clear input
+        questionInput.value = "";
+        questionInput.style.height = "auto";
+
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        addLoading();
+
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question }),
+          });
+
+          const data = await response.json();
+
+          // Remove loading and add answer
+          removeLoading();
+
+          const metadata = {
+            confidence: data.confidence,
+            refused: data.refused,
+            reason: data.reason,
+          };
+
+          addMessage(data.answer, false, metadata);
+
+          // Add retrieval info
+          addRetrievalInfo(data);
+
+          // Add sources if available
+          if (data.sources && data.sources.length > 0) {
+            addSources(data.sources);
+          }
+
+          // Add supporting chunks if available
+          if (data.chunks && data.chunks.length > 0) {
+            addChunks(data.chunks);
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          removeLoading();
+          addMessage(
+            "An error occurred while processing your question. Please try again.",
+            false,
+            {
+              refused: true,
+              reason: "System error",
+            },
+          );
+        } finally {
+          submitBtn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
