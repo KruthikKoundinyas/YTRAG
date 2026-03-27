@@ -3,7 +3,7 @@ import re
 import requests
 from flask import Flask, render_template, request, jsonify
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 
 # Ollama configuration
 OLLAMA_BASE_URL = "http://localhost:11434"
@@ -11,11 +11,14 @@ OLLAMA_MODEL = "llama3"
 USE_OLLAMA = True  # Set to False to use fallback keyword-based approach
 
 # Transcript data paths
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
 TRANSCRIPTS = {
-    "aircAruvnKk": "cleaned/aircAruvnKk_cleaned.txt",
-    "wjZofJX0v4M": "cleaned/wjZofJX0v4M_cleaned.txt",
-    "fHF22Wxuyw4": "cleaned/fHF22Wxuyw4_cleaned.txt",
-    "C6YtPJxNULA": "cleaned/C6YtPJxNULA_cleaned.txt"
+    "aircAruvnKk": os.path.join(PROJECT_ROOT, "cleaned", "aircAruvnKk_cleaned.txt"),
+    "wjZofJX0v4M": os.path.join(PROJECT_ROOT, "cleaned", "wjZofJX0v4M_cleaned.txt"),
+    "fHF22Wxuyw4": os.path.join(PROJECT_ROOT, "cleaned", "fHF22Wxuyw4_cleaned.txt"),
+    "C6YtPJxNULA": os.path.join(PROJECT_ROOT, "cleaned", "C6YtPJxNULA_cleaned.txt")
 }
 
 VIDEO_NAMES = {
