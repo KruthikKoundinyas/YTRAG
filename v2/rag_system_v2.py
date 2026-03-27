@@ -320,7 +320,7 @@ class RAGPipeline:
       → Validation → Response
     """
     
-    def __init__(self, transcripts_dir: str = "cleaned"):
+    def __init__(self, transcripts_dir: str = "../cleaned"):
         self.transcripts_dir = transcripts_dir
         self.retriever = SemanticRetriever()
         self.generator = GroundedAnswerGenerator()
